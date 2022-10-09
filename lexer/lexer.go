@@ -25,22 +25,22 @@ const eof = -1
 
 // Item represents a Token returned from the scanner.
 type Item struct {
-	token token.Token // The token of this Item.
-	pos   int         // The starting position, in bytes, of this Item in the input string.
-	val   string      // The value of this Item.
+	Token token.Token // The Token of this Item.
+	Pos   int         // The starting position, in bytes, of this Item in the input string.
+	Val   string      // The value of this Item.
 }
 
 func (i Item) String() string {
-	switch i.token {
+	switch i.Token {
 	case token.EOF:
 		return "EOF"
 	case token.Error:
-		return i.val
+		return i.Val
 	}
-	if len(i.val) > 10 {
-		return fmt.Sprintf("%.10q...", i.val)
+	if len(i.Val) > 10 {
+		return fmt.Sprintf("%.10q...", i.Val)
 	}
-	return fmt.Sprintf("%q", i.val)
+	return fmt.Sprintf("%q", i.Val)
 }
 
 // Lexer holds the state of the scanner.
@@ -79,9 +79,9 @@ func (l *Lexer) run() {
 // emit passes an Item back to the client.
 func (l *Lexer) emit(t token.Token) {
 	l.items <- Item{
-		token: t,
-		pos:   l.start,
-		val:   l.input[l.start:l.pos],
+		Token: t,
+		Pos:   l.start,
+		Val:   l.input[l.start:l.pos],
 	}
 	l.start = l.pos
 }
@@ -141,10 +141,10 @@ func (l *Lexer) errorf(format string, args ...interface{}) stateFn {
 	return nil
 }
 
-// nextItem returns the next Item from the input. The Lexer has to be
+// NextItem returns the next Item from the input. The Lexer has to be
 // drained (all items received until itemEOF or itemError) - otherwise
 // the Lexer goroutine will leak.
-func (l *Lexer) nextItem() Item {
+func (l *Lexer) NextItem() Item {
 	return <-l.items
 }
 

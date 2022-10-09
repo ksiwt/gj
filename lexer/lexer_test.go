@@ -14,8 +14,8 @@ type lexTest struct {
 
 func mkItem(tok token.Token, text string) Item {
 	return Item{
-		token: tok,
-		val:   text,
+		Token: tok,
+		Val:   text,
 	}
 }
 
@@ -36,9 +36,9 @@ func lexToSlice(input string) []Item {
 	var items []Item
 	lexer := Lex(input)
 	for {
-		item := lexer.nextItem()
+		item := lexer.NextItem()
 		items = append(items, item)
-		if item.token == token.EOF || item.token == token.Error {
+		if item.Token == token.EOF || item.Token == token.Error {
 			break
 		}
 	}
@@ -50,17 +50,106 @@ func equal(i1, i2 []Item, checkPos bool) bool {
 		return false
 	}
 	for k := range i1 {
-		if i1[k].token != i2[k].token {
+		if i1[k].Token != i2[k].Token {
 			return false
 		}
-		if i1[k].val != i2[k].val {
+		if i1[k].Val != i2[k].Val {
 			return false
 		}
-		if checkPos && i1[k].pos != i2[k].pos {
+		if checkPos && i1[k].Pos != i2[k].Pos {
 			return false
 		}
 	}
 	return true
+}
+
+func TestLex(t *testing.T) {
+	input := `{
+					"glossary": {
+						"title": "example glossary",
+						"GlossDiv": {
+							"title": "S",
+							"GlossList": {
+								"GlossEntry": {
+									"GlossTerm": "Standard Generalized Markup Language",
+									"Abbrev": "ISO 8879:1986",
+									"GlossDef": {
+										"para": "A meta-markup language, used to create markup languages such as DocBook.",
+										"GlossSeeAlso": ["GML", "XML"]
+									},
+									"GlossSee": "markup"
+								}
+							},
+							"Nums": 5245243
+						}
+					}
+				}`
+
+	wantItems := []Item{
+		tLeftBrace,
+		mkItem(token.String, `"glossary"`),
+		tColon,
+		tLeftBrace,
+		mkItem(token.String, `"title"`),
+		tColon,
+		mkItem(token.String, `"example glossary"`),
+		tComma,
+		mkItem(token.String, `"GlossDiv"`),
+		tColon,
+		tLeftBrace,
+		mkItem(token.String, `"title"`),
+		tColon,
+		mkItem(token.String, `"S"`),
+		tComma,
+		mkItem(token.String, `"GlossList"`),
+		tColon,
+		tLeftBrace,
+		mkItem(token.String, `"GlossEntry"`),
+		tColon,
+		tLeftBrace,
+		mkItem(token.String, `"GlossTerm"`),
+		tColon,
+		mkItem(token.String, `"Standard Generalized Markup Language"`),
+		tComma,
+		mkItem(token.String, `"Abbrev"`),
+		tColon,
+		mkItem(token.String, `"ISO 8879:1986"`),
+		tComma,
+		mkItem(token.String, `"GlossDef"`),
+		tColon,
+		tLeftBrace,
+		mkItem(token.String, `"para"`),
+		tColon,
+		mkItem(token.String, `"A meta-markup language, used to create markup languages such as DocBook."`),
+		tComma,
+		mkItem(token.String, `"GlossSeeAlso"`),
+		tColon,
+		tLeftBracket,
+		mkItem(token.String, `"GML"`),
+		tComma,
+		mkItem(token.String, `"XML"`),
+		tRightBracket,
+		tRightBrace,
+		tComma,
+		mkItem(token.String, `"GlossSee"`),
+		tColon,
+		mkItem(token.String, `"markup"`),
+		tRightBrace,
+		tRightBrace,
+		tComma,
+		mkItem(token.String, `"Nums"`),
+		tColon,
+		mkItem(token.Number, "5245243"),
+		tRightBrace,
+		tRightBrace,
+		tRightBrace,
+		tEOF,
+	}
+
+	items := lexToSlice(input)
+	if !equal(items, wantItems, false) {
+		t.Errorf("got\n\t%v\nexpected\n\t%v", items, wantItems)
+	}
 }
 
 func TestLexToken(t *testing.T) {
