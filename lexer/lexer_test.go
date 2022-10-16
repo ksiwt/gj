@@ -156,7 +156,7 @@ func TestLexToken(t *testing.T) {
 	var tests = []lexTest{
 		{
 			"string",
-			`{"color" : "blue"}`,
+			`{"color": "blue"}`,
 			[]Item{
 				tLeftBrace,
 				mkItem(token.String, `"color"`),
@@ -169,8 +169,8 @@ func TestLexToken(t *testing.T) {
 		{
 			"booleans",
 			`{
-					"boolean1" : true,
-					"boolean2" : false
+					"boolean1": true,
+					"boolean2": false
 				}`,
 			[]Item{
 				tLeftBrace,
@@ -188,11 +188,11 @@ func TestLexToken(t *testing.T) {
 		{
 			"numbers",
 			`{
-					"number_1" : 210,
-					"number_2" : -210,
-					"number_3" : 21.05,
-					"number_4" : 1.0E+2,
-					"number_5" : 2e+308
+					"number_1": 210,
+					"number_2": -210,
+					"number_3": 21.05,
+					"number_4": 1.0E+2,
+					"number_5": 2e+308
 				}`,
 			[]Item{
 				tLeftBrace,
@@ -221,7 +221,7 @@ func TestLexToken(t *testing.T) {
 		},
 		{
 			"alphanumeric",
-			`{"value" : "abc123"}`,
+			`{"value": "abc123"}`,
 			[]Item{
 				tLeftBrace,
 				mkItem(token.String, `"value"`),
@@ -233,7 +233,7 @@ func TestLexToken(t *testing.T) {
 		},
 		{
 			"null",
-			`{"value" : null}`,
+			`{"value": null}`,
 			[]Item{
 				tLeftBrace,
 				mkItem(token.String, `"value"`),
