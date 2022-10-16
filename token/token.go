@@ -4,18 +4,18 @@ package token
 type Token int
 
 const (
-	Unknown Token = iota
-	LeftBrace
-	RightBrace
-	LeftBracket
-	RightBracket
-	String
-	Number
-	True
-	False
-	Null
-	Comma
-	Colon
-	EOF
-	Error
+	Unknown      Token = iota // unknown
+	LeftBrace                 // {
+	RightBrace                // }
+	LeftBracket               // [
+	RightBracket              // ]
+	String                    // "foo"
+	Number                    // 1
+	True                      // true
+	False                     // false
+	Null                      // null
+	Comma                     // ,
+	Colon                     // :
+	EOF                       // eof
+	Error                     // error
 )
