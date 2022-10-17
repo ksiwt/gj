@@ -76,7 +76,7 @@ func TestParser_Parse(t *testing.T) {
 					"number_1": 210,
 					"number_2": -210,
 					"number_3": 21.05,
-					"number_4": 1.0E+2,
+					"number_4": 1.0E+2
 				}`,
 			&ast.RootNode{
 				RootNodeType: ast.RootNodeTypeObject,
@@ -472,4 +472,78 @@ func TestParser_Parse(t *testing.T) {
 			assert.Equal(t, result, tt.want)
 		})
 	}
+}
+
+func TestParser_ParseError(t *testing.T) {
+	t.Run("invalid JSON strings", func(t *testing.T) {
+		var tests = []parserErrorTest{
+			{"wrong quote in property key", `{'prop': "val"}`},
+			{"wrong quote in property value", `{"prop": 'val'}`},
+			{"wrong escape sequence in property key", `{"prop"": "val"}`},
+			{"wrong escape sequence in property value", `{"prop": "val""}`},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				p := New(lexer.Lex(tt.input))
+				_, err := p.Parse()
+				assert.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("invalid JSON numbers", func(t *testing.T) {
+		var tests = []parserErrorTest{
+			{"currency sign is now allowed in numbers", `{"prop": $1.00}`},
+			{"expression is not allowed in numbers", `{"prop": 99.00 * 0.15}`},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				p := New(lexer.Lex(tt.input))
+				_, err := p.Parse()
+				assert.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("invalid JSON arrays", func(t *testing.T) {
+		var tests = []parserErrorTest{
+			{"extra comma in array", `{"prop": ["Hello", 3.14,]}`},
+			{"extra comma in array", `{"prop": ["Hello", , 3.14]}`},
+			{"closing bracket is wrong", `{"prop": ["Hello", 3.14}}`},
+			{"missing closing bracket", `{"prop": ["Hello, 3.14}"`},
+			{"name value pair not allowed in array", `{"prop": ["Hello", "name": "Joe"]}`},
+			{"missing closing bracket in root array", `[{"id": 1, "name":"water"}, {"id": 2,"name":"knife"}`},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				p := New(lexer.Lex(tt.input))
+				_, err := p.Parse()
+				assert.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("invalid JSON object", func(t *testing.T) {
+		var tests = []parserErrorTest{
+			{"extra comma n object", `{"prop1": "val1", "prop2", "val2", }`},
+			{"extra comma in object", `{"prop1": "val1", , "prop2", "val2"}`},
+			{"closing brace is wrong", `{"prop": "val"]`},
+			{"missing starting brace", `"prop": "val"`},
+			{"missing closing brace", `{"prop": "val"`},
+			{"missing property value in object", `{"prop": }`},
+			{"missing colon after property key in object", `{"prop" "val"}`},
+			{"missing property name in object", `{{}}`},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				p := New(lexer.Lex(tt.input))
+				_, err := p.Parse()
+				assert.Error(t, err)
+			})
+		}
+	})
 }

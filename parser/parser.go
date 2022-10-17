@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -11,9 +12,10 @@ import (
 
 // Parser represents iterating Lexer and building AST.
 type Parser struct {
-	lex     *lexer.Lexer // Lexer.
-	current lexer.Item   // Current Item.
-	peek    lexer.Item   // Peek Item.
+	lex      *lexer.Lexer // Lexer.
+	previous lexer.Item   // Previous Item.
+	current  lexer.Item   // Current Item.
+	peek     lexer.Item   // Peek Item.
 }
 
 // New takes a Lexer and initialize Parser,
@@ -32,11 +34,15 @@ func New(lex *lexer.Lexer) *Parser {
 // Parse parses Items and creates an AST.
 func (p *Parser) Parse() (*ast.RootNode, error) {
 	var node ast.RootNode
-
-	if p.current.Token == token.LeftBracket {
-		node.RootNodeType = ast.RootNodeTypeArray
-	} else {
+	switch p.current.Token {
+	case token.LeftBrace:
 		node.RootNodeType = ast.RootNodeTypeObject
+	case token.LeftBracket:
+		node.RootNodeType = ast.RootNodeTypeArray
+	}
+
+	if err := p.validateStartingSyntax(node); err != nil {
+		return nil, err
 	}
 
 	val, parseErr := p.parseValue()
@@ -45,12 +51,47 @@ func (p *Parser) Parse() (*ast.RootNode, error) {
 	}
 	node.Value = val
 
+	if err := p.validateClosingSyntax(node); err != nil {
+		return nil, err
+	}
+
 	return &node, nil
 }
 
+// validateStartingSyntax validate JSON starting syntax.
+func (p *Parser) validateStartingSyntax(n ast.RootNode) error {
+	switch n.RootNodeType {
+	case ast.RootNodeTypeObject:
+		if p.isCurrentToken(token.RightBrace) {
+			return nil
+		}
+	case ast.RootNodeTypeArray:
+		if p.isCurrentToken(token.RightBracket) {
+			return nil
+		}
+	}
+	return errors.New("failed to parse: missing JSON starting brace or bracket")
+}
+
+// validateClosingSyntax validate JSON closing syntax.
+func (p *Parser) validateClosingSyntax(n ast.RootNode) error {
+	switch n.RootNodeType {
+	case ast.RootNodeTypeObject:
+		if p.isCurrentToken(token.EOF) && p.isPreviousToken(token.RightBrace) {
+			return nil
+		}
+	case ast.RootNodeTypeArray:
+		if p.isCurrentToken(token.EOF) && p.isPreviousToken(token.RightBracket) {
+			return nil
+		}
+	}
+	return errors.New("failed to parse: missing JSON closing brace or bracket")
+}
+
 // next sets current Item from peek,
-// also sets peek Item from returned from p.lex.NextItem().
+// also sets peek Item from returned from p.lex.NextItem() and append current itemto p.items.
 func (p *Parser) next() {
+	p.previous = p.current
 	p.current = p.peek
 	p.peek = p.lex.NextItem()
 }
@@ -79,7 +120,6 @@ func (p *Parser) parseValue() (*ast.Value, error) {
 		if parseErr != nil {
 			return nil, parseErr
 		}
-
 		value.Value = litValue
 	}
 
@@ -104,7 +144,7 @@ func (p *Parser) parseObject() (*ast.Object, error) {
 				p.next()
 			} else {
 				return nil, fmt.Errorf(
-					"failed to parse object: expected LeftBrace token but got: %s",
+					"failed to parse object: expected LeftBrace token but got: %v",
 					p.current.Val,
 				)
 			}
@@ -131,7 +171,7 @@ func (p *Parser) parseObject() (*ast.Object, error) {
 				p.next()
 			} else {
 				return nil, fmt.Errorf(
-					"failed to parse property: expected RightBrace or Comma token but got: %s",
+					"failed to parse property: expected RightBrace or Comma token but got: %v",
 					p.current.Val,
 				)
 			}
@@ -172,7 +212,7 @@ func (p *Parser) parseProperty() (*ast.Property, error) {
 				p.next()
 			} else {
 				return nil, fmt.Errorf(
-					"failed to parse property start: expected String token but got: %s",
+					"failed to parse property start: expected String token but got: %v",
 					p.current.Val,
 				)
 			}
@@ -183,7 +223,7 @@ func (p *Parser) parseProperty() (*ast.Property, error) {
 				p.next()
 			} else {
 				return nil, fmt.Errorf(
-					"failed to parse property key: expected Colon token but got: %s",
+					"failed to parse property key: expected Colon token but got: %v",
 					p.current.Val,
 				)
 			}
@@ -247,7 +287,7 @@ func (p *Parser) parseArray() (*ast.Array, error) {
 				p.next()
 			} else {
 				return nil, fmt.Errorf(
-					"failed to parse property start: expected RightBrace or Comma token but got: %s",
+					"failed to parse array: expected RightBrace or Comma token but got: %v",
 					p.current.Val,
 				)
 			}
@@ -314,14 +354,14 @@ func (p *Parser) parseLiteral() (*ast.Literal, error) {
 	case token.Number:
 		lit.LiteralType = ast.LiteralTypeNumber
 		ct := p.current.Val
-		i, err := strconv.ParseInt(ct, 10, 64)
-		if err == nil {
+		i, parseIntErr := strconv.ParseInt(ct, 10, 64)
+		if parseIntErr == nil {
 			lit.Val = i
 		} else {
-			f, err := strconv.ParseFloat(ct, 64)
-			if err != nil {
+			f, parseFloatErr := strconv.ParseFloat(ct, 64)
+			if parseFloatErr != nil {
 				return nil, fmt.Errorf(
-					"failed to parse number: incorrect syntact %s",
+					"failed to parse number: incorrect syntax %v",
 					p.current.Val,
 				)
 			}
@@ -339,6 +379,12 @@ func (p *Parser) parseLiteral() (*ast.Literal, error) {
 	case token.Null:
 		lit.LiteralType = ast.LiteralTypeNull
 		lit.Val = "null"
+
+	default:
+		return nil, fmt.Errorf(
+			"failed to parse literal: incorrect syntax %v",
+			p.current.Val,
+		)
 	}
 
 	return &lit, nil
@@ -348,6 +394,11 @@ func (p *Parser) parseLiteral() (*ast.Literal, error) {
 func (p *Parser) parseString() string {
 	s, _ := strconv.Unquote(p.current.Val)
 	return s
+}
+
+// isPreviousToken reports whether t is previous Token.
+func (p *Parser) isPreviousToken(t token.Token) bool {
+	return p.previous.Token == t
 }
 
 // isCurrentToken reports whether t is current Token.
