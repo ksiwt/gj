@@ -10,7 +10,8 @@ import (
 	"github.com/pohedev/gj.git/token"
 )
 
-// Parser represents iterating Lexer and building AST.
+// Parser represents iterating Lexer and building AST,
+// holds three tokens.
 type Parser struct {
 	lex      *lexer.Lexer // Lexer.
 	previous lexer.Item   // Previous Item.
@@ -88,8 +89,11 @@ func (p *Parser) validateClosingSyntax(n ast.RootNode) error {
 	return errors.New("failed to parse: missing JSON closing brace or bracket")
 }
 
-// next sets current Item from peek,
-// also sets peek Item from returned from p.lex.NextItem() and append current itemto p.items.
+// next sets and advance Item which include token.
+// in the process,
+// - set current to previous.
+// - set peek to current.
+// - set returned from p.lex.NextItem() to peek.
 func (p *Parser) next() {
 	p.previous = p.current
 	p.current = p.peek
