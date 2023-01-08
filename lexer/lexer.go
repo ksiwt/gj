@@ -15,12 +15,6 @@ const (
 	boolFalseValue = "false"
 )
 
-const (
-	nullValueLen      = 4
-	boolTrueValueLen  = 4
-	boolFalseValueLen = 5
-)
-
 const eof = -1
 
 // Item represents a Token returned from the scanner.
@@ -249,7 +243,7 @@ func (l *Lexer) scanNumber() bool {
 // lexNull scans a run of null.
 func lexNull(l *Lexer) stateFn {
 	if strings.HasPrefix(l.input[l.pos:], nullValue) {
-		for i := 0; i < nullValueLen; i++ {
+		for i := 0; i < len(nullValue); i++ {
 			l.next()
 		}
 		l.emit(token.Null)
@@ -260,12 +254,12 @@ func lexNull(l *Lexer) stateFn {
 // lexBool scans a run of boolean.
 func lexBool(l *Lexer) stateFn {
 	if strings.HasPrefix(l.input[l.pos:], boolTrueValue) {
-		for i := 0; i < boolTrueValueLen; i++ {
+		for i := 0; i < len(boolTrueValue); i++ {
 			l.next()
 		}
 		l.emit(token.True)
 	} else if strings.HasPrefix(l.input[l.pos:], boolFalseValue) {
-		for i := 0; i < boolFalseValueLen; i++ {
+		for i := 0; i < len(boolFalseValue); i++ {
 			l.next()
 		}
 		l.emit(token.False)
