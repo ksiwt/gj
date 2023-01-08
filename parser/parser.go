@@ -63,11 +63,11 @@ func (p *Parser) Parse() (*ast.RootNode, error) {
 func (p *Parser) validateStartingSyntax(n ast.RootNode) error {
 	switch n.RootNodeType {
 	case ast.RootNodeTypeObject:
-		if p.isCurrentToken(token.RightBrace) {
+		if p.isCurrentToken(token.LeftBrace) {
 			return nil
 		}
 	case ast.RootNodeTypeArray:
-		if p.isCurrentToken(token.RightBracket) {
+		if p.isCurrentToken(token.LeftBracket) {
 			return nil
 		}
 	}
